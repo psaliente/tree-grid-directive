@@ -5,33 +5,44 @@
             '$templateCache',
             function ($templateCache) {
                 $templateCache.put('template/treeGrid/treeGrid.html',
-                    "<div class=\"table-responsive\">\n" +
-                    " <table class=\"table tree-grid\">\n" +
-                    "   <thead>\n" +
-                    "     <tr>\n" +
-                    "       <th><a ng-if=\"expandingProperty.sortable\" ng-click=\"sortBy(expandingProperty)\">{{expandingProperty.displayName || expandingProperty.field || expandingProperty}}</a><span ng-if=\"!expandingProperty.sortable\">{{expandingProperty.displayName || expandingProperty.field || expandingProperty}}</span><i ng-if=\"expandingProperty.sorted\" class=\"{{expandingProperty.sortingIcon}} pull-right\"></i></th>\n" +
-                    "       <th ng-repeat=\"col in colDefinitions\"><a ng-if=\"col.sortable\" ng-click=\"sortBy(col)\">{{col.displayName || col.field}}</a><span ng-if=\"!col.sortable\">{{col.displayName || col.field}}</span><i ng-if=\"col.sorted\" class=\"{{col.sortingIcon}} pull-right\"></i></th>\n" +
-                    "     </tr>\n" +
-                    "   </thead>\n" +
-                    "   <tbody>\n" +
-                    "     <tr ng-repeat=\"row in tree_rows | searchFor:$parent.filterString:expandingProperty:colDefinitions track by row.branch.uid\"\n" +
-                    "       ng-class=\"'level-' + {{ row.level }} + (row.branch.selected ? ' active':'')\" class=\"tree-grid-row\">\n" +
-                    "       <td><a ng-click=\"user_clicks_branch(row.branch)\"><i ng-class=\"row.tree_icon\"\n" +
-                    "              ng-click=\"row.branch.expanded = !row.branch.expanded\"\n" +
-                    "              class=\"indented tree-icon\"></i></a><span ng-if=\"expandingProperty.cellTemplate\" class=\"indented tree-label\" " +
-                    "              ng-click=\"on_user_click(row.branch)\" compile=\"expandingProperty.cellTemplate\"></span>" +
-                    "              <span  ng-if=\"!expandingProperty.cellTemplate\" class=\"indented tree-label\" ng-click=\"on_user_click(row.branch)\">\n" +
-                    "             {{row.branch[expandingProperty.field] || row.branch[expandingProperty]}}</span>\n" +
-                    "       </td>\n" +
-                    "       <td ng-repeat=\"col in colDefinitions\">\n" +
-                    "         <div ng-if=\"col.cellTemplate\" compile=\"col.cellTemplate\" cell-template-scope=\"col.cellTemplateScope\"></div>\n" +
-                    "         <div ng-if=\"!col.cellTemplate\">{{row.branch[col.field]}}</div>\n" +
-                    "       </td>\n" +
-                    "     </tr>\n" +
-                    "   </tbody>\n" +
-                    " </table>\n" +
-                    "</div>\n" +
-                    "");
+                    "<div class=\"table-responsive\" ng-class=\"cssTheme.containerClass\">\
+                      <table class=\"table tree-grid\" ng-class=\"cssTheme.tableClass\">\
+                       <thead ng-class=\"cssTheme.theadClass\">\
+                         <tr>\
+                           <th ng-class=\"expandingProperty.headerClass\">\
+                             <a ng-if=\"expandingProperty.sortable\" ng-click=\"sortBy(expandingProperty)\">{{expandingProperty.displayName || expandingProperty.field || expandingProperty}}</a>\
+                             <span ng-if=\"!expandingProperty.sortable\">{{expandingProperty.displayName || expandingProperty.field || expandingProperty}}</span>\
+                             <i ng-if=\"expandingProperty.sorted\" class=\"{{expandingProperty.sortingIcon}} pull-right\"></i>\
+                           </th>\
+                           <th ng-repeat=\"col in colDefinitions\" ng-class=\"col.headerClass\">\
+                             <a ng-if=\"col.sortable\" ng-click=\"sortBy(col)\">{{col.displayName || col.field}}</a>\
+                             <span ng-if=\"!col.sortable\">{{col.displayName || col.field}}</span>\
+                             <i ng-if=\"col.sorted\" class=\"{{col.sortingIcon}} pull-right\"></i>\
+                           </th>\
+                         </tr>\
+                       </thead>\
+                       <tbody ng-class=\"cssTheme.tbodyClass\">\
+                         <tr ng-repeat=\"row in tree_rows | searchFor:$parent.filterString:expandingProperty:colDefinitions track by row.branch.uid\"\
+                           ng-class=\"'level-' + {{ row.level }} + (row.branch.selected ? ' active':'')\" class=\"tree-grid-row\">\
+                           <td ng-class=\"expandingProperty.cellClass\">\
+                             <a ng-click=\"user_clicks_branch(row.branch)\">\
+                               <i ng-class=\"row.tree_icon\" ng-click=\"row.branch.expanded = !row.branch.expanded\" class=\"indented tree-icon\"></i>\
+                             </a>\
+                             <span ng-if=\"expandingProperty.cellTemplate\" class=\"indented tree-label\" ng-click=\"on_user_click(row.branch)\" compile=\"expandingProperty.cellTemplate\"></span>\
+                             <span  ng-if=\"!expandingProperty.cellTemplate\" class=\"indented tree-label\" ng-click=\"on_user_click(row.branch)\">\
+                                 {{row.branch[expandingProperty.field] || row.branch[expandingProperty]}}\
+                             </span>\
+                           </td>\
+                           <td ng-repeat=\"col in colDefinitions\" ng-class=\"col.cellClass\">\
+                             <div ng-if=\"col.cellTemplate\" compile=\"col.cellTemplate\" cell-template-scope=\"col.cellTemplateScope\"></div>\
+                             <div ng-if=\"!col.cellTemplate\">{{row.branch[col.field]}}</div>\
+                           </td>\
+                         </tr>\
+                       </tbody>\
+                       <tfoot ng-if=\"tfootDefinition.tfootTemplate\" compile=\"tfootDefinition.tfootTemplate\" cell-template-scope=\"tfootDefinition.cellTemplateScope\" >\
+                       </tfoot>\
+                     </table>\
+                    </div>");
             }]);
 
     angular
@@ -84,11 +95,14 @@
                         treeData: '=',
                         colDefs: '=',
                         expandOn: '=',
+                        childNodes: '=',
                         onSelect: '&',
                         onClick: '&',
                         initialSelection: '@',
                         treeControl: '=',
-                        expandTo: '='
+                        expandTo: '=',
+                        tfootDefinition: '=',
+                        cssTheme: '='
                     },
                     link: function (scope, element, attrs) {
                         var error, expandingProperty, expand_all_parents, expand_level, for_all_ancestors, for_each_branch, get_parent, n, on_treeData_change, select_branch, selected_branch, tree;
@@ -138,7 +152,7 @@
                             if (scope.treeData.length) {
                                 var _col_defs = [],
                                     _firstRow = scope.treeData[0],
-                                    _unwantedColumn = ['children', 'level', 'expanded', 'icons', expandingProperty];
+                                    _unwantedColumn = [ scope.childNodes || 'children', 'level', 'expanded', 'icons', expandingProperty];
                                 for (var idx in _firstRow) {
                                     if (_unwantedColumn.indexOf(idx) === -1) {
                                         _col_defs.push({
@@ -157,8 +171,8 @@
                             do_f = function (branch, level) {
                                 var child, _i, _len, _ref, _results;
                                 f(branch, level);
-                                if (branch.children != null) {
-                                    _ref = branch.children;
+                                if (branch[scope.childNodes || 'children'] != null) {
+                                    _ref = branch[ scope.childNodes || 'children'];
                                     _results = [];
                                     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                                         child = _ref[_i];
@@ -237,7 +251,7 @@
                         var sort_recursive = function (elements, col, descending) {
                             elements.sort(sort_by(col, descending));
                             for (var i = 0; i < elements.length; i++) {
-                                sort_recursive(elements[i].children, col, descending);
+                                sort_recursive(elements[i][scope.childNodes || 'children'], col, descending);
                             }
                         };
 
@@ -325,8 +339,8 @@
                             });
                             for_each_branch(function (b) {
                                 var child, _i, _len, _ref, _results;
-                                if (angular.isArray(b.children)) {
-                                    _ref = b.children;
+                                if (angular.isArray(b[scope.childNodes || 'children'])) {
+                                    _ref = b[scope.childNodes || 'children'];
                                     _results = [];
                                     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                                         child = _ref[_i];
@@ -338,21 +352,22 @@
                             scope.tree_rows = [];
                             for_each_branch(function (branch) {
                                 var child, f;
-                                if (branch.children) {
-                                    if (branch.children.length > 0) {
+                                if (branch[scope.childNodes || 'children']) {
+                                    if (branch[scope.childNodes || 'children'].length > 0) {
                                         f = function (e) {
                                             if (typeof e === 'string') {
-                                                return {
-                                                    label: e,
-                                                    children: []
+                                                var tmpNode = {
+                                                    label: e
                                                 };
+                                                tmpNode[scope.childNodes || 'children'] = [];
+                                                return tmpNode;
                                             } else {
                                                 return e;
                                             }
                                         };
-                                        return branch.children = (function () {
+                                        return branch[scope.childNodes || 'children'] = (function () {
                                             var _i, _len, _ref, _results;
-                                            _ref = branch.children;
+                                            _ref = branch [scope.childNodes || 'children'];
                                             _results = [];
                                             for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                                                 child = _ref[_i];
@@ -362,7 +377,7 @@
                                         })();
                                     }
                                 } else {
-                                    return branch.children = [];
+                                    return branch[scope.childNodes || 'children'] = [];
                                 }
                             });
                             add_branch_to_list = function (level, branch, visible) {
@@ -370,7 +385,7 @@
                                 if (branch.expanded == null) {
                                     branch.expanded = false;
                                 }
-                                if (!branch.children || branch.children.length === 0) {
+                                if (!branch[scope.childNodes || 'children'] || branch[scope.childNodes || 'children'].length === 0) {
                                     tree_icon = branch.icons && branch.icons.iconLeaf || attrs.iconLeaf;
                                 } else {
                                     if (branch.expanded) {
@@ -387,8 +402,8 @@
                                     tree_icon: tree_icon,
                                     visible: visible
                                 });
-                                if (branch.children != null) {
-                                    _ref = branch.children;
+                                if (branch[scope.childNodes || 'children'] != null) {
+                                    _ref = branch[scope.childNodes || 'children'];
                                     _results = [];
                                     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
                                         child = _ref[_i];
@@ -473,7 +488,7 @@
                                     return b;
                                 };
                                 tree.get_children = function (b) {
-                                    return b.children;
+                                    return b[scope.childNodes || 'children'];
                                 };
                                 tree.select_parent_branch = function (b) {
                                     var p;
@@ -490,7 +505,7 @@
                                 };
                                 tree.add_branch = function (parent, new_branch) {
                                     if (parent != null) {
-                                        parent.children.push(new_branch);
+                                        parent[scope.childNodes || 'children'].push(new_branch);
                                         parent.expanded = true;
                                     } else {
                                         scope.treeData.push(new_branch);
@@ -527,7 +542,7 @@
                                     if (b != null) {
                                         p = tree.get_parent_branch(b);
                                         if (p) {
-                                            siblings = p.children;
+                                            siblings = p[scope.childNodes || 'children'];
                                         } else {
                                             siblings = scope.treeData;
                                         }
@@ -590,8 +605,8 @@
                                         b = selected_branch;
                                     }
                                     if (b != null) {
-                                        if (((_ref = b.children) != null ? _ref.length : void 0) > 0) {
-                                            return b.children[0];
+                                        if (((_ref = b[scope.childNodes || 'children']) != null ? _ref.length : void 0) > 0) {
+                                            return b[scope.childNodes || 'children'][0];
                                         }
                                     }
                                 };
@@ -638,11 +653,11 @@
                                     if (b == null) {
                                         debugger;
                                     }
-                                    n = b.children.length;
+                                    n = b[scope.childNodes || 'children'].length;
                                     if (n === 0) {
                                         return b;
                                     } else {
-                                        last_child = b.children[n - 1];
+                                        last_child = b[scope.childNodes || 'children'][n - 1];
                                         return tree.last_descendant(last_child);
                                     }
                                 };
